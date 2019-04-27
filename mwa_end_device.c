@@ -72,6 +72,9 @@
 #include "board.h"
 #include "fsl_os_abstraction.h"
 
+/*My task*/
+#include "MyNewTask.h"
+
 /************************************************************************************
 *************************************************************************************
 * Private macros
@@ -580,7 +583,9 @@ void AppThread(osaTaskParam_t argument)
                             /* Startup the timer */
                             TMR_StartLowPowerTimer(mTimer_c, gTmrSingleShotTimer_c ,mPollInterval, AppPollWaitTimeout, NULL );
                             /* Go to the listen state */
+
                             gState = stateListen;
+                            LED_TurnOffAllLeds();
                             OSA_EventSet(mAppEvent, gAppEvtDummyEvent_c); 
                         }        
                         else 
@@ -614,8 +619,14 @@ void AppThread(osaTaskParam_t argument)
             } 
 
             if (ev & gAppEvtRxFromUart_c)
-            {      
+            {
+            	 uint8_t msg[4] = "Hola";
+            	/*
+                uint8_t msg[4] = "Hola";
+                App_TransmitData(msg, 4);
+                */
                 /* get byte from UART */
+            	App_TransmitData(msg, 4);
                 App_TransmitUartData();
             }
 #if gNvmTestActive_d  
@@ -1144,6 +1155,47 @@ static void App_TransmitUartData(void)
     {
         OSA_EventSet(mAppEvent, gAppEvtRxFromUart_c);
     }
+}
+
+void App_TransmitData(uint8_t *data, uint8_t count)
+{
+
+    if( (mcPendingPackets < mDefaultValueOfMaxPendingDataPackets_c) && (mpPacket == NULL) )
+    {
+        /* If the maximum number of pending data buffes is below maximum limit
+        and we do not have a data buffer already then allocate one. */
+        mpPacket = MSG_Alloc(sizeof(nwkToMcpsMessage_t) + gMaxPHYPacketSize_c);
+    }
+
+    /* Data is available in the SerialManager's receive buffer. Now create an
+    MCPS-Data Request message containing the data. */
+    mpPacket->msgType = gMcpsDataReq_c;
+
+    mpPacket->msgData.dataReq.pMsdu = data;
+
+    /* Create the header using coordinator information gained during
+    the scan procedure. Also use the short address we were assigned
+    by the coordinator during association. */
+    FLib_MemCpy(&mpPacket->msgData.dataReq.dstAddr, &mCoordInfo.coordAddress, 8);
+    FLib_MemCpy(&mpPacket->msgData.dataReq.srcAddr, &maMyAddress, 8);
+    FLib_MemCpy(&mpPacket->msgData.dataReq.dstPanId, &mCoordInfo.coordPanId, 2);
+    FLib_MemCpy(&mpPacket->msgData.dataReq.srcPanId, &mCoordInfo.coordPanId, 2);
+    mpPacket->msgData.dataReq.dstAddrMode = mCoordInfo.coordAddrMode;
+    mpPacket->msgData.dataReq.srcAddrMode = mAddrMode;
+    mpPacket->msgData.dataReq.msduLength = count;
+    /* Request MAC level acknowledgement of the data packet */
+    mpPacket->msgData.dataReq.txOptions = gMacTxOptionsAck_c;
+    /* Give the data packet a handle. The handle is
+    returned in the MCPS-Data Confirm message. */
+    mpPacket->msgData.dataReq.msduHandle = mMsduHandle++;
+    /* Don't use security */
+    mpPacket->msgData.dataReq.securityLevel = gMacSecurityNone_c;
+
+    /* Send the Data Request to the MCPS */
+    (void)NWK_MCPS_SapHandler(mpPacket, macInstance);
+
+    mpPacket = NULL;
+    mcPendingPackets++;
 }
 
 /******************************************************************************
