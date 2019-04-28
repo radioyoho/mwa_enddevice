@@ -7,6 +7,7 @@
 
 #include "MyNewTask.h"
 #include "fsl_os_abstraction.h"
+#include "mwa_end_device.h"
 
 void My_Task(osaTaskParam_t argument);
 static void myTaskTimerCallback(void *param);
@@ -25,6 +26,11 @@ OSA_TASK_DEFINE(My_Task, gMyTaskPriority_c, 1, gMyTaskStackSize_c, FALSE );
 /* Main custom task */
 void My_Task(osaTaskParam_t argument)
 {
+	uint8_t msg[14] = "Counter = x\n\r";
+	msg[13] = 0;
+
+	uint8_t counter = 255;
+
 	osaEventFlags_t customEvent;
 	myTimerID = TMR_AllocateTimer();
 	while(1)
@@ -52,16 +58,13 @@ void My_Task(osaTaskParam_t argument)
 				break;
 
 			case gMyNewTaskEvent2_c: /* Event called from myTaskTimerCallback */
-				if(!ledsState)
-				{
-					TurnOnLeds();
-					ledsState = 1;
-				}
-				else
-				{
-					TurnOffLeds();
-					ledsState = 0;
-				}
+
+				TurnOffLeds();
+				counter = ((counter + 1) % 4);
+				LED_Operate(1 << counter, gLedOn_c);
+				msg[SizeOfString(msg) - 3] = '1' + counter;
+				App_TransmitData(&msg[0], SizeOfString(msg));
+
 				break;
 			case gMyNewTaskEvent3_c: /* Event to stop the timer */
 				ledsState = 0;

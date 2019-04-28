@@ -297,10 +297,6 @@ void App_Idle_Task(uint32_t argument)
             Serial_Print(interfaceId, "\n\rEntering in deep sleep mode...\n\r", gAllowToBlock_d);
             wakeupReason = PWR_EnterLowPower();
             PWR_DisallowDeviceToSleep();
-            Led1On();
-            Led2On();
-            Led3On();
-            Led4On();
 
             if( wakeupReason.Bits.FromKeyBoard )
             {
@@ -332,6 +328,7 @@ void App_Idle_Task(uint32_t argument)
 *****************************************************************************/
 void App_init( void )
 {
+	MyTask_Init();
     mAppEvent = OSA_EventCreate(TRUE);
     /* The initial application state */
     gState = stateInit;
@@ -585,6 +582,7 @@ void AppThread(osaTaskParam_t argument)
                             /* Go to the listen state */
 
                             gState = stateListen;
+                            MyTaskTimer_Start();
                             LED_TurnOffAllLeds();
                             OSA_EventSet(mAppEvent, gAppEvtDummyEvent_c); 
                         }        
@@ -620,13 +618,6 @@ void AppThread(osaTaskParam_t argument)
 
             if (ev & gAppEvtRxFromUart_c)
             {
-            	 uint8_t msg[4] = "Hola";
-            	/*
-                uint8_t msg[4] = "Hola";
-                App_TransmitData(msg, 4);
-                */
-                /* get byte from UART */
-            	App_TransmitData(msg, 4);
                 App_TransmitUartData();
             }
 #if gNvmTestActive_d  
