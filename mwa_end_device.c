@@ -97,6 +97,7 @@
   #define mAddrMode_ID_c           0x0012
 #endif
 
+#define isFFD 	0
 /************************************************************************************
 *************************************************************************************
 * Private prototypes
@@ -582,6 +583,16 @@ void AppThread(osaTaskParam_t argument)
                             /* Go to the listen state */
 
                             gState = stateListen;
+
+#ifndef isFFD
+                            uint8_t value 1 = false;
+                            mlmeMessage_t msg;
+                            msg.msgType = gMlmeSetReq_c;
+                            msg.msgData.setReq.pibAttribute = gMPibRxOnWhenIdle_c;
+                            msg.msgData.setReq.pibAttributeValue = (uint8_t *)&value1;
+                            (void)NWK_MLME_SapHandler( &msg, 0 );
+#endif
+
                             MyTaskTimer_Start();
                             LED_TurnOffAllLeds();
                             OSA_EventSet(mAppEvent, gAppEvtDummyEvent_c); 
@@ -880,7 +891,7 @@ static uint8_t App_SendAssociateRequest(void)
 #endif
 
     /* We want the coordinator to assign a short address to us. */
-    pAssocReq->capabilityInfo     = gCapInfoAllocAddr_c;
+    pAssocReq->capabilityInfo     = gCapInfoAllocAddr_c | gCapInfoRxWhenIdle_c;
       
     /* Send the Associate Request to the MLME. */
     if(NWK_MLME_SapHandler( pMsg, macInstance ) == gSuccess_c)

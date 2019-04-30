@@ -26,8 +26,8 @@ OSA_TASK_DEFINE(My_Task, gMyTaskPriority_c, 1, gMyTaskStackSize_c, FALSE );
 /* Main custom task */
 void My_Task(osaTaskParam_t argument)
 {
-	uint8_t msg[14] = "Counter = x\n\r";
-	msg[13] = 0;
+	uint8_t msg[13] = "Counter: x\n\r";
+	msg[12] = 0;
 
 	uint8_t counter = 255;
 
